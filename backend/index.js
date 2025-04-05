@@ -1,6 +1,7 @@
 const express=require('express');
 const app=express();
 const AuthRouter = require('./routes/AuthRouter');
+const PredictionRouter=require('./routes/PredictionRouter');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
@@ -12,6 +13,7 @@ app.get('/ping',(req,res)=>{
 app.use(bodyParser.json());
 app.use(cors());
 app.use('/auth', AuthRouter);
+app.use('/predict', PredictionRouter);
 app.listen(PORT,()=>{
     console.log(`Server is running on ${PORT}`)
 })
