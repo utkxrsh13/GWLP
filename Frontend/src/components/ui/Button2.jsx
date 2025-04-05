@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const Button = () => {
+const Button = ({name}) => {
   return (
     <StyledWrapper>
-      <button className="button">
-        Make Prediction
+      <button className='button'>
+        {name}
       </button>
     </StyledWrapper>
   );
@@ -14,8 +14,8 @@ const Button = () => {
 const StyledWrapper = styled.div`
   .button {
     position: relative;
-    padding: 10px 18px;
-    border-radius: 10px;
+    padding: 12px 18px;
+    border-radius: 50px;
     border: none;
     color: #fff;
     cursor: pointer;

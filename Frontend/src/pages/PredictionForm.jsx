@@ -41,21 +41,21 @@ const PredictionForm = () => {
 
         <TextField
           fullWidth
-          type="date"
+          type="number"
           name="date"
           label="Date"
           InputLabelProps={{ shrink: true }}
           onChange={handleChange}
           required
         />
-        <TextField
+        {/* <TextField
           fullWidth
           label="Rainfall (mm)"
           name="rainfall"
           onChange={handleChange}
           type="number"
           required
-        />
+        /> */}
         <Button variant="contained" type="submit" fullWidth>
           Predict
         </Button>
