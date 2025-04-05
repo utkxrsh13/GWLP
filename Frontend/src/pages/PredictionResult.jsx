@@ -1,11 +1,14 @@
 import { Alert, CircularProgress } from '@mui/material';
 import React, { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom';
+import { getPrediction } from '../services/api.js'; // Adjust the import path as necessary
+import Charts from '../components/Charts.jsx';
 
 const PredictionResult = () => {
   const location = useLocation();
   const formData = location.state;
   const [result, setResult] = useState(null);
+  const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -14,7 +17,15 @@ const PredictionResult = () => {
       try {
         const data = await getPrediction(formData);
         setResult(data);
+        const predictionsArray = Object.entries(data.predictions).map(
+          ([year, level]) => ({
+            date: year,
+            groundwater_level: level,
+          })
+        );
+        setChartData(predictionsArray);
       } catch (err) {
+        console.error("Error while fetching prediction:", err);
         setError("Failed to fetch prediction.");
       } finally {
         setLoading(false);
@@ -22,7 +33,7 @@ const PredictionResult = () => {
     };
 
     if (formData) {
-      fetchPrediction();
+      fetchPrediction(); // ✅ call the renamed function
     } else {
       setError("No input data provided.");
       setLoading(false);
@@ -40,8 +51,10 @@ const PredictionResult = () => {
         <p><strong>Longitude:</strong> {formData.longitude}</p>
         <p><strong>Date:</strong> {formData.date}</p>
         <p><strong>Rainfall:</strong> {formData.rainfall} mm</p>
-        <p className="mt-4 text-xl"><strong>Predicted Groundwater Level:</strong> {result?.groundwater_level} m</p>
+        <p className="mt-4 text-xl"><strong>Predicted Groundwater Level ({formData.date}):</strong> {result?.predictions?.[formData.date]} m</p>
       </div>
+      {/* Chart Component */}
+      <Charts data={chartData} />
     </div>
   );
 };
