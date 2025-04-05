@@ -17,7 +17,7 @@ const Charts = ({ data }) => {
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
-          <YAxis domain={["auto", "auto"]} label={{ value: "Depth (m)", angle: -90, position: "insideLeft" }} />
+          <YAxis domain={["auto", "auto"]} label={{ value: "Depth (ft)", angle: -90, position: "insideLeft" }} />
           <Tooltip />
           <Line type="monotone" dataKey="groundwater_level" stroke="#3b82f6" strokeWidth={2} dot />
         </LineChart>

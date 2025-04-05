@@ -5,7 +5,7 @@ const Button = () => {
   return (
     <StyledWrapper>
       <button className="animated-button">
-        <span>Hover me</span>
+        <span>Select location</span>
         <span />
       </button>
     </StyledWrapper>
