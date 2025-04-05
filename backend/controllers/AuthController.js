@@ -1,6 +1,8 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserModel = require("../Models/User");
+const axios = require('axios');
+const Prediction = require('../models/prediction');
 
 
 const signup = async (req, res) => {
@@ -80,10 +82,61 @@ const logout = async (req, res) => {
         });
     }
 }
+const predictAndStore = async (req, res) => {
+    const { latitude, longitude } = req.body;
+    const username = req.user?.username; 
+  
+    if (!username || latitude === undefined || longitude === undefined) {
+      return res.status(400).json({ error: 'Missing username, latitude, or longitude' });
+    }
+  
+    try {
+      
+      const mlResponse = await axios.post('http://localhost:5000/predict', {
+        latitude,
+        longitude
+      });
+  
+      const prediction_result = mlResponse.data.result;
+  
+      
+      const savedPrediction = await Prediction.create({
+        username,
+        prediction_result,
+        latitude,
+        longitude
+      });
+  
+      res.status(201).json({
+        message: 'Prediction retrieved and stored successfully',
+        data: savedPrediction
+      });
+    } catch (error) {
+      console.error('Prediction error:', error.message);
+      res.status(500).json({ error: 'Failed to get prediction or save data' });
+    }
+  }
+  const getUserHistory = async (req, res) => {
+    const username = req.user?.username;
+  
+    if (!username) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  
+    try {
+      const history = await Prediction.find({ username }).sort({ timestamp: -1 });
+      res.status(200).json({ data: history });
+    } catch (error) {
+      console.error('Error fetching history:', error.message);
+      res.status(500).json({ error: 'Failed to fetch prediction history' });
+    }
+  }
 
 module.exports = {
     signup,
     login,
-    logout
+    logout,
+    predictAndStore,
+    getUserHistory,
 
 }
