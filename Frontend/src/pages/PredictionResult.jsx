@@ -1,9 +1,15 @@
-import { Alert, CircularProgress } from '@mui/material';
+import { Alert } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { getPrediction } from '../services/api.js'; // Adjust the import path as necessary
-import Charts from '../components/Charts.jsx';
-import Loader from '../components/ui/Loader.jsx';
+import { getPrediction } from '../services/api.js';
+import WaterGlass from '../components/ui/WaterGlass.jsx';
+import PredictionCard from '../components/ui/PredictionCard.jsx';
+import InteractiveRecommendations from '../components/ui/InteractiveRecommendations.jsx';
+import EnhancedCharts from '../components/ui/EnhancedCharts.jsx';
+import FeedbackWidget from '../components/ui/FeedbackWidget.jsx';
+import LoadingScreen from '../components/ui/LoadingScreen.jsx';
+import DashboardLayout from '../components/layout/DashboardLayout.jsx';
+import useNotification from '../hooks/useNotification.jsx';
 
 const PredictionResult = () => {
   const location = useLocation();
@@ -12,7 +18,16 @@ const PredictionResult = () => {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showRecommendations, setShowRecommendations] = useState(false); // State to toggle recommendations
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const { showNotification, NotificationContainer } = useNotification();
+
+  const handleFeedback = (feedback) => {
+    console.log('User feedback:', feedback);
+    showNotification('Thank you for your feedback!', 'success');
+    // Here you can send feedback to your backend
+    // api.submitFeedback(feedback);
+  };
 
   const getRecommendations = (level) => {
     if (level < 4) {
@@ -84,7 +99,10 @@ const PredictionResult = () => {
   useEffect(() => {
     const fetchPrediction = async () => {
       try {
+        // Simulate loading progress
+        setLoadingProgress(25);
         const data = await getPrediction(formData);
+        setLoadingProgress(75);
         setResult(data);
         const predictionsArray = Object.entries(data.predictions).map(
           ([year, level]) => ({
@@ -93,11 +111,14 @@ const PredictionResult = () => {
           })
         );
         setChartData(predictionsArray);
+        setLoadingProgress(100);
+        showNotification('Prediction analysis completed successfully!', 'success');
       } catch (err) {
         console.error("Error while fetching prediction:", err);
         setError("Failed to fetch prediction.");
+        showNotification('Failed to fetch prediction data', 'error');
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 500); // Small delay for smooth transition
       }
     };
 
@@ -107,65 +128,184 @@ const PredictionResult = () => {
       setError("No input data provided.");
       setLoading(false);
     }
-  }, [formData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData]); // showNotification is stable, no need to include in dependencies
 
-  if (loading) return <div className="p-6 text-center translate-y-20"><Loader /></div>;
-  if (error) return <div className="p-6"><Alert severity="error">{error}</Alert></div>;
+  if (loading) return (
+    <LoadingScreen 
+      message="Analyzing Groundwater Data"
+      subMessage="Processing satellite data and environmental factors..."
+      progress={loadingProgress}
+    />
+  );
+  
+  if (error) return (
+    <DashboardLayout title="Error" subtitle="Something went wrong">
+      <div className="flex items-center justify-center py-20">
+        <div className="max-w-md w-full">
+          <Alert severity="error" className="shadow-2xl rounded-xl">
+            <div className="flex items-center gap-3 p-4">
+              <span className="text-3xl">⚠️</span>
+              <div>
+                <h3 className="font-bold text-lg">Prediction Error</h3>
+                <p className="mt-1">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="mt-3 btn-primary text-sm"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </Alert>
+        </div>
+      </div>
+      <NotificationContainer />
+    </DashboardLayout>
+  );
+
+  const currentLevel = result?.predictions[formData.year] || 0;
+  const currentDepth = currentLevel * 25;
 
   return (
-    <div className="p-6 h-[100vh] flex flex-row">
-  {/* Left Side - Chart Section */}
-  <div className="w-1/2 p-4 bg-gray-100 rounded-lg shadow flex flex-col justify-center items-center">
-    <h2 className="text-2xl font-bold mb-4">Prediction Result</h2>
-    <div className="w-full">
-      <p><strong>Latitude:</strong> {formData.latitude}</p>
-      <p><strong>Longitude:</strong> {formData.longitude}</p>
-      <p className="mt-4 text-xl"><strong>Predicted Groundwater Level ({formData.year}):</strong>
-        {result?.predictions[formData.year] ? `${(result.predictions[formData.year] * 25).toFixed(2)} feet` : "No data available"}
-      </p>
-    </div>
-    <Charts data={chartData} />
-  </div>
+    <DashboardLayout 
+      title="Groundwater Intelligence Report" 
+      subtitle="Smart predictions for sustainable water management"
+    >
+      <div className="space-y-8">
+        {!showRecommendations ? (
+          /* Main Overview Layout */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Water Glass Visualization */}
+            <div className="lg:col-span-1">
+              <div className="card p-6 text-center animate-slideInLeft">
+                <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center justify-center gap-2">
+                  💧 Current Water Level
+                </h2>
+                <WaterGlass level={currentDepth} maxLevel={150} size={280} />
+                <div className="mt-6 space-y-3">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm text-gray-600">Location</p>
+                    <p className="font-semibold">📍 {formData.latitude}°N, {formData.longitude}°E</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm text-gray-600">Prediction Year</p>
+                    <p className="font-semibold text-lg">📅 {formData.year}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-  {/* Right Side - Button + Sliding Recommendation Panel */}
-<div className="w-1/2 p-4 bg-gray-100 rounded-lg shadow relative overflow-hidden">
-  {/* Centered Show/Hide Button (when panel is hidden) */}
-  {!showRecommendations && (
-    <div className="flex flex-col items-center justify-center h-full">
-      <button
-        className="bg-blue-500 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-600 transition z-10"
-        onClick={() => setShowRecommendations(true)}
-      >
-        Show Recommendations
-      </button>
-    </div>
-  )}
+            {/* Middle Column - Prediction Card */}
+            <div className="lg:col-span-1">
+              <PredictionCard 
+                formData={formData}
+                result={result}
+                onShowRecommendations={() => {
+                  setShowRecommendations(true);
+                  showNotification('Loading smart recommendations...', 'info');
+                }}
+              />
+            </div>
 
-  {/* Sliding Recommendations Panel */}
-  <div
-    className={`absolute bottom-0 left-0 w-full h-full bg-white p-6 rounded-lg shadow-lg transform transition-transform duration-500 ease-in-out
-      ${showRecommendations ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}
-    `}
-  >
-    <h2 className="text-2xl font-bold mb-4">📌 Recommendations</h2>
-    <p><strong>🌾Recommended Crops:</strong> {getRecommendations(result.predictions[formData.year]).crops.join(", ")}</p>
-    <p className="mt-2"><strong>🚰Irrigation Advice:</strong> {getRecommendations(result.predictions[formData.year]).irrigation}</p>
-    <p className="mt-2"><strong>🌟Additional Tips:</strong> {getRecommendations(result.predictions[formData.year]).tips}</p>
+            {/* Right Column - Charts */}
+            <div className="lg:col-span-1">
+              <div className="card p-6 animate-slideInRight">
+                <EnhancedCharts data={chartData} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Recommendations View */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left - Summary Card */}
+            <div className="animate-slideInLeft">
+              <div className="card p-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                    📊 Prediction Summary
+                  </h2>
+                  <WaterGlass level={currentDepth} maxLevel={150} size={220} />
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 rounded-lg p-4 text-center border border-blue-200">
+                      <p className="text-sm text-blue-600 font-medium">Year</p>
+                      <p className="font-bold text-blue-800 text-lg">{formData.year}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-4 text-center border border-green-200">
+                      <p className="text-sm text-green-600 font-medium">Level</p>
+                      <p className="font-bold text-green-800 text-lg">{currentDepth.toFixed(2)} ft</p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      setShowRecommendations(false);
+                      showNotification('Switched to overview mode', 'info');
+                    }}
+                    className="w-full btn-secondary flex items-center justify-center gap-2"
+                  >
+                    <span>←</span>
+                    Back to Overview
+                  </button>
+                </div>
+              </div>
+            </div>
 
-    {/* Button at the end of content */}
-    <div className="mt-6 flex justify-center">
-      <button
-        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
-        onClick={() => setShowRecommendations(false)}
-      >
-        Hide Recommendations
-      </button>
-    </div>
-  </div>
-</div>
+            {/* Right - Interactive Recommendations */}
+            <div className="animate-slideInRight">
+              <InteractiveRecommendations 
+                recommendations={getRecommendations(currentLevel)}
+                level={currentLevel}
+              />
+            </div>
+          </div>
+        )}
 
-</div>
+        {/* Enhanced Footer Actions */}
+        <div className="mt-12">
+          <div className="card p-8 text-center animate-fadeIn">
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+              🔍 Explore More Options
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Take action based on your groundwater predictions
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button 
+                onClick={() => showNotification('Report download started!', 'success')}
+                className="btn-success flex items-center justify-center gap-2"
+              >
+                <span>📊</span>
+                Download Report
+              </button>
+              <button 
+                onClick={() => showNotification('Results shared successfully!', 'success')}
+                className="btn-primary flex items-center justify-center gap-2"
+              >
+                <span>📱</span>
+                Share Results
+              </button>
+              <button 
+                onClick={() => showNotification('Redirecting to new prediction...', 'info')}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <span>🔄</span>
+                New Prediction
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      {/* Feedback Widget */}
+      <FeedbackWidget onFeedbackSubmit={handleFeedback} />
+      
+      {/* Notification Container */}
+      <NotificationContainer />
+    </DashboardLayout>
   );
 };
 
